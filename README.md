@@ -1,4 +1,6 @@
-﻿# SFZ Tool Prototype
+# SFZ Tool Prototype
+
+This is an early accessibility prototype and not yet a functional SFZ editor.
 
 An experimental accessible SFZ instrument editor built with Rust and wxDragon.
 
