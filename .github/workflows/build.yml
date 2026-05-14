@@ -1,0 +1,99 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release executable
+        run: cargo build --release
+
+      - name: Package Windows artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist\sfz-tool-windows | Out-Null
+          Copy-Item target\release\sfz_tool.exe dist\sfz-tool-windows\
+          Copy-Item README.md dist\sfz-tool-windows\
+          Compress-Archive -Path dist\sfz-tool-windows\* -DestinationPath dist\sfz-tool-windows.zip -Force
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfz-tool-windows
+          path: dist/sfz-tool-windows.zip
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release executable
+        run: cargo build --release
+
+      - name: Package macOS app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app_name="SFZ Tool Prototype"
+          bundle="dist/${app_name}.app"
+
+          mkdir -p "${bundle}/Contents/MacOS"
+          cp target/release/sfz_tool "${bundle}/Contents/MacOS/sfz_tool"
+
+          cat > "${bundle}/Contents/Info.plist" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+           "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>SFZ Tool Prototype</string>
+            <key>CFBundleDisplayName</key>
+            <string>SFZ Tool Prototype</string>
+            <key>CFBundleIdentifier</key>
+            <string>io.github.scottchesworth.sfz</string>
+            <key>CFBundleVersion</key>
+            <string>0.1.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>0.1.0</string>
+            <key>CFBundleExecutable</key>
+            <string>sfz_tool</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>11.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          codesign --force --deep --sign - "${bundle}"
+          ditto -c -k --keepParent "${bundle}" dist/sfz-tool-macos.zip
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfz-tool-macos
+          path: dist/sfz-tool-macos.zip
