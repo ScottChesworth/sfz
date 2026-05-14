@@ -1,0 +1,10 @@
+[package]
+name = "sfz_tool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wxdragon = "0.9"
+
+[build-dependencies]
+embed-manifest = "1.4"
